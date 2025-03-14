@@ -1,6 +1,17 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, Pressable, Alert } from 'react-native';
+import { View, Text, StyleSheet, Image, Pressable, Alert, Platform } from 'react-native';
 import { router } from 'expo-router';
+
+// Web端的Alert替代方案
+const webAlert = (title: string, message: string, buttons: any[]) => {
+  if (typeof window !== 'undefined') {
+    const result = window.confirm(`${title}\n${message}`);
+    if (result) {
+      const confirmButton = buttons.find(button => button.style === 'destructive');
+      confirmButton?.onPress?.();
+    }
+  }
+};
 
 interface Note {
   id: number;
@@ -29,25 +40,49 @@ export default function NoteCard({ note, onDelete }: NoteCardProps) {
   };
 
   const handleLongPress = () => {
-    console.log('Long press detected');
-    Alert.alert(
-      "删除笔记",
-      "确定要删除这条笔记吗？",
-      [
-        {
-          text: "取消",
-          style: "cancel"
-        },
-        {
-          text: "删除",
-          style: "destructive",
-          onPress: () => {
-            console.log('Deleting note from card:', note.id);
-            onDelete(note.id);
-          }
-        }
-      ]
-    );
+    // 使用setTimeout来确保Alert在长按事件完成后显示
+    setTimeout(() => {
+      if (Platform.OS === 'web') {
+        webAlert(
+          "删除笔记",
+          "确定要删除这条笔记吗？",
+          [
+            {
+              text: "取消",
+              style: "cancel"
+            },
+            {
+              text: "删除",
+              style: "destructive",
+              onPress: () => {
+                console.log('Deleting note from card:', note.id);
+                onDelete(note.id);
+              }
+            }
+          ]
+        );
+      } else {
+        Alert.alert(
+          "删除笔记",
+          "确定要删除这条笔记吗？",
+          [
+            {
+              text: "取消",
+              style: "cancel"
+            },
+            {
+              text: "删除",
+              style: "destructive",
+              onPress: () => {
+                console.log('Deleting note from card:', note.id);
+                onDelete(note.id);
+              }
+            }
+          ],
+          { cancelable: true }
+        );
+      }
+    }, Platform.select({ ios: 50, android: 0, default: 0 }));
   };
 
   return (
@@ -58,8 +93,7 @@ export default function NoteCard({ note, onDelete }: NoteCardProps) {
       ]}
       onPress={handlePress}
       onLongPress={handleLongPress}
-      delayLongPress={500}
-      android_ripple={{ color: 'rgba(0,0,0,0.1)' }}
+      delayLongPress={300}
     >
       <View style={styles.noteContent}>
         <Text style={styles.noteTitle}>{note.title}</Text>
